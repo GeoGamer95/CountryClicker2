@@ -132,8 +132,9 @@ const state = {
 
 init().catch((error) => {
   console.error(error);
-  dom.promptText.textContent = "Failed to load the game";
-  dom.detailText.textContent = "Check the browser console for details.";
+  renderGrid();
+  resetView();
+  showModeSelection();
 });
 
 async function init() {
