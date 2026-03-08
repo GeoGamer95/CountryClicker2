@@ -10,6 +10,7 @@ const ZOOM_STEP = 1.25;
 const ISLAND_BOX_THRESHOLD = 7;
 const ISLAND_BOX_MIN_SIZE = 9;
 const ISLAND_BOX_PADDING = 0.8;
+const TOUCH_PAN_THRESHOLD_PX = 8;
 
 function assetUrl(relativePath) {
   return new URL(relativePath, document.baseURI).toString();
@@ -121,6 +122,12 @@ const state = {
   panStartClientY: 0,
   panStartCenterX: 0,
   panStartCenterY: 0,
+  touchMode: "none",
+  touchMoved: false,
+  lastTouchPoint: null,
+  lastPinchDistance: 0,
+  lastPinchMidpoint: null,
+  suppressNextClick: false,
   countries: [],
   countryMetadata: [],
   countriesLoadPromise: null,
@@ -168,6 +175,10 @@ function wireEvents() {
 
   dom.mapSvg.addEventListener("wheel", handleWheel, { passive: false });
   dom.mapSvg.addEventListener("mousedown", handleMouseDown);
+  dom.mapSvg.addEventListener("touchstart", handleTouchStart, { passive: false });
+  dom.mapSvg.addEventListener("touchmove", handleTouchMove, { passive: false });
+  dom.mapSvg.addEventListener("touchend", handleTouchEnd, { passive: false });
+  dom.mapSvg.addEventListener("touchcancel", handleTouchCancel, { passive: false });
   window.addEventListener("mousemove", handleMouseMove);
   window.addEventListener("mouseup", handleMouseUp);
   dom.mapSvg.addEventListener("contextmenu", (event) => event.preventDefault());
@@ -292,19 +303,19 @@ function startRound() {
     state.currentCountry = null;
     hideFlagPrompt();
     setPromptText(`Click: ${state.currentCity.name}, ${state.currentCity.country}`);
-    dom.detailText.textContent = "Mouse wheel zooms, right-drag pans, left-click locks in your guess.";
+    dom.detailText.textContent = "Mouse wheel or pinch zooms, drag pans, and click or tap locks in your guess.";
   } else if (state.mode === "countries") {
     state.currentCountry = state.remainingCountries.shift();
     state.currentCity = null;
     hideFlagPrompt();
     setPromptText(`Click the country: ${state.currentCountry.name}`);
-    dom.detailText.textContent = `Mouse wheel zooms, right-drag pans, left-click a country outline to answer. Round size: ${state.roundLabel}.`;
+    dom.detailText.textContent = `Mouse wheel or pinch zooms, drag pans, and click or tap a country outline to answer. Round size: ${state.roundLabel}.`;
   } else if (state.mode === "capitals") {
     state.currentCountry = state.remainingCountries.shift();
     state.currentCity = null;
     hideFlagPrompt();
     setPromptText(`Click the country for: ${state.currentCountry.capital}`);
-    dom.detailText.textContent = `Mouse wheel zooms, right-drag pans, left-click the country that matches the capital. Round size: ${state.roundLabel}.`;
+    dom.detailText.textContent = `Mouse wheel or pinch zooms, drag pans, and click or tap the country that matches the capital. Round size: ${state.roundLabel}.`;
   } else {
     state.currentCountry = state.remainingCountries.shift();
     state.currentCity = null;
@@ -784,13 +795,17 @@ function drawCityOverlay(guess, actual) {
 
 function handleWheel(event) {
   event.preventDefault();
+  const nextZoom = clamp(event.deltaY < 0 ? state.zoom * ZOOM_STEP : state.zoom / ZOOM_STEP, MIN_ZOOM, MAX_ZOOM);
+  zoomAtClientPoint(event.clientX, event.clientY, nextZoom);
+}
+
+function zoomAtClientPoint(clientX, clientY, nextZoom) {
   const rect = dom.mapSvg.getBoundingClientRect();
-  const ratioX = (event.clientX - rect.left) / rect.width;
-  const ratioY = (event.clientY - rect.top) / rect.height;
+  const ratioX = (clientX - rect.left) / rect.width;
+  const ratioY = (clientY - rect.top) / rect.height;
   const currentView = getCurrentViewBox();
   const focusX = currentView.x + (currentView.width * ratioX);
   const focusY = currentView.y + (currentView.height * ratioY);
-  const nextZoom = clamp(event.deltaY < 0 ? state.zoom * ZOOM_STEP : state.zoom / ZOOM_STEP, MIN_ZOOM, MAX_ZOOM);
 
   if (Math.abs(nextZoom - state.zoom) < 0.001) {
     return;
@@ -804,6 +819,17 @@ function handleWheel(event) {
   state.zoom = nextZoom;
   state.centerX = nextX + (nextWidth / 2);
   state.centerY = nextY + (nextHeight / 2);
+  clampViewCenter();
+  updateViewBox();
+}
+
+function panByClientDelta(deltaClientX, deltaClientY) {
+  const rect = dom.mapSvg.getBoundingClientRect();
+  const view = getCurrentViewBox();
+  const deltaX = (deltaClientX / rect.width) * view.width;
+  const deltaY = (deltaClientY / rect.height) * view.height;
+  state.centerX -= deltaX;
+  state.centerY -= deltaY;
   clampViewCenter();
   updateViewBox();
 }
@@ -840,7 +866,129 @@ function handleMouseUp() {
   state.isPanning = false;
 }
 
+function handleTouchStart(event) {
+  if (event.touches.length === 1) {
+    const touch = event.touches[0];
+    state.touchMode = "pan";
+    state.touchMoved = false;
+    state.lastTouchPoint = { clientX: touch.clientX, clientY: touch.clientY };
+    state.lastPinchDistance = 0;
+    state.lastPinchMidpoint = null;
+    return;
+  }
+
+  if (event.touches.length >= 2) {
+    event.preventDefault();
+    const firstTouch = event.touches[0];
+    const secondTouch = event.touches[1];
+    state.touchMode = "pinch";
+    state.touchMoved = true;
+    state.lastTouchPoint = null;
+    state.lastPinchDistance = getTouchDistance(firstTouch, secondTouch);
+    state.lastPinchMidpoint = getTouchMidpoint(firstTouch, secondTouch);
+  }
+}
+
+function handleTouchMove(event) {
+  if (event.touches.length === 1 && state.touchMode === "pan" && state.lastTouchPoint) {
+    const touch = event.touches[0];
+    const deltaClientX = touch.clientX - state.lastTouchPoint.clientX;
+    const deltaClientY = touch.clientY - state.lastTouchPoint.clientY;
+
+    if (Math.abs(deltaClientX) > TOUCH_PAN_THRESHOLD_PX || Math.abs(deltaClientY) > TOUCH_PAN_THRESHOLD_PX || state.touchMoved) {
+      event.preventDefault();
+      state.touchMoved = true;
+      panByClientDelta(deltaClientX, deltaClientY);
+    }
+
+    state.lastTouchPoint = { clientX: touch.clientX, clientY: touch.clientY };
+    return;
+  }
+
+  if (event.touches.length >= 2) {
+    event.preventDefault();
+
+    const firstTouch = event.touches[0];
+    const secondTouch = event.touches[1];
+    const midpoint = getTouchMidpoint(firstTouch, secondTouch);
+    const distance = getTouchDistance(firstTouch, secondTouch);
+
+    if (state.touchMode !== "pinch" || !state.lastPinchMidpoint || state.lastPinchDistance <= 0) {
+      state.touchMode = "pinch";
+      state.touchMoved = true;
+      state.lastTouchPoint = null;
+      state.lastPinchMidpoint = midpoint;
+      state.lastPinchDistance = distance;
+      return;
+    }
+
+    panByClientDelta(midpoint.clientX - state.lastPinchMidpoint.clientX, midpoint.clientY - state.lastPinchMidpoint.clientY);
+    zoomAtClientPoint(midpoint.clientX, midpoint.clientY, clamp(state.zoom * (distance / state.lastPinchDistance), MIN_ZOOM, MAX_ZOOM));
+
+    state.touchMode = "pinch";
+    state.touchMoved = true;
+    state.lastPinchMidpoint = midpoint;
+    state.lastPinchDistance = distance;
+  }
+}
+
+function handleTouchEnd(event) {
+  if (event.touches.length === 0) {
+    if (state.touchMode === "pan" && !state.touchMoved && event.changedTouches.length > 0) {
+      const touch = event.changedTouches[0];
+      const point = getSvgPointFromClient(touch.clientX, touch.clientY);
+      const target = document.elementFromPoint(touch.clientX, touch.clientY);
+
+      if (point) {
+        state.suppressNextClick = true;
+        handleMapSelection(target, point);
+      }
+    } else if (state.touchMode !== "none") {
+      state.suppressNextClick = true;
+    }
+
+    resetTouchGesture();
+    return;
+  }
+
+  if (event.touches.length === 1) {
+    const touch = event.touches[0];
+    state.touchMode = "pan";
+    state.lastTouchPoint = { clientX: touch.clientX, clientY: touch.clientY };
+    state.lastPinchDistance = 0;
+    state.lastPinchMidpoint = null;
+    state.touchMoved = true;
+    return;
+  }
+
+  const firstTouch = event.touches[0];
+  const secondTouch = event.touches[1];
+  state.touchMode = "pinch";
+  state.touchMoved = true;
+  state.lastTouchPoint = null;
+  state.lastPinchDistance = getTouchDistance(firstTouch, secondTouch);
+  state.lastPinchMidpoint = getTouchMidpoint(firstTouch, secondTouch);
+}
+
+function handleTouchCancel() {
+  resetTouchGesture();
+  state.suppressNextClick = true;
+}
+
+function resetTouchGesture() {
+  state.touchMode = "none";
+  state.touchMoved = false;
+  state.lastTouchPoint = null;
+  state.lastPinchDistance = 0;
+  state.lastPinchMidpoint = null;
+}
+
 function handleMapClick(event) {
+  if (state.suppressNextClick) {
+    state.suppressNextClick = false;
+    return;
+  }
+
   if (event.button !== 0 || state.isPanning) {
     return;
   }
@@ -850,14 +998,18 @@ function handleMapClick(event) {
     return;
   }
 
+  handleMapSelection(event.target, point);
+}
+
+function handleMapSelection(target, point) {
   if (state.mode === "cities" && state.acceptingInput && state.currentCity) {
     handleCityGuess(point.x, -point.y);
     return;
   }
 
   if ((state.mode === "countries" || state.mode === "capitals" || state.mode === "flags") && state.acceptingInput && state.currentCountry) {
-    const targetElement = event.target instanceof Element
-      ? event.target.closest("[data-country-key]")
+    const targetElement = target instanceof Element
+      ? target.closest("[data-country-key]")
       : null;
 
     const selectedCountryKey = targetElement?.dataset.countryKey
@@ -902,11 +1054,26 @@ function clampViewCenter() {
 }
 
 function getSvgPoint(event) {
+  return getSvgPointFromClient(event.clientX, event.clientY);
+}
+
+function getSvgPointFromClient(clientX, clientY) {
   const point = dom.mapSvg.createSVGPoint();
-  point.x = event.clientX;
-  point.y = event.clientY;
+  point.x = clientX;
+  point.y = clientY;
   const transform = dom.mapSvg.getScreenCTM();
   return transform ? point.matrixTransform(transform.inverse()) : null;
+}
+
+function getTouchMidpoint(firstTouch, secondTouch) {
+  return {
+    clientX: (firstTouch.clientX + secondTouch.clientX) / 2,
+    clientY: (firstTouch.clientY + secondTouch.clientY) / 2
+  };
+}
+
+function getTouchDistance(firstTouch, secondTouch) {
+  return Math.hypot(secondTouch.clientX - firstTouch.clientX, secondTouch.clientY - firstTouch.clientY);
 }
 
 function normalizeCountries(features, metadataItems) {
