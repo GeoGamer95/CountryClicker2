@@ -1,0 +1,270 @@
+:root {
+  --paper: #f4f1e8;
+  --paper-dark: #e7e0d1;
+  --ink: #203040;
+  --muted: #53616e;
+  --ocean: #e6eff1;
+  --land: #d4c8a7;
+  --outline: #7d7467;
+  --accent: #203040;
+  --accent-alt: #c96e45;
+  --correct: #4aa060;
+  --wrong: #cb5454;
+  --box: rgba(125, 116, 103, 0.85);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: "Segoe UI", sans-serif;
+  color: var(--ink);
+  background:
+    radial-gradient(circle at top left, rgba(255, 255, 255, 0.7), transparent 30%),
+    linear-gradient(180deg, #f7f4ec 0%, #ece6d8 100%);
+}
+
+button {
+  font: inherit;
+  cursor: pointer;
+}
+
+.hidden {
+  display: none !important;
+}
+
+.page-shell {
+  min-height: 100vh;
+  display: grid;
+  grid-template-rows: auto 1fr;
+}
+
+.game-header {
+  padding: 1.2rem 1.2rem 0;
+}
+
+.prompt-block {
+  min-height: 5.6rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.prompt-text {
+  margin: 0;
+  font-size: clamp(1.8rem, 3vw, 2.4rem);
+  line-height: 1.1;
+}
+
+.flag-prompt {
+  width: min(14rem, 45vw);
+  min-height: 5rem;
+  padding: 0.4rem;
+  border: 2px solid rgba(32, 48, 64, 0.18);
+  border-radius: 0.8rem;
+  background: white;
+  box-shadow: 0 0.5rem 1.5rem rgba(32, 48, 64, 0.08);
+}
+
+.flag-prompt img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.meta-line {
+  margin: 0.2rem 0;
+  color: var(--muted);
+}
+
+.detail-line {
+  min-height: 1.5rem;
+}
+
+.button-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 0.9rem;
+}
+
+.mode-button,
+.action-button,
+.modal-options button,
+.modal-cancel {
+  min-width: 8.5rem;
+  padding: 0.72rem 1rem;
+  border: 0;
+  border-radius: 0.8rem;
+  color: white;
+  background: var(--accent);
+  box-shadow: 0 0.4rem 1rem rgba(32, 48, 64, 0.16);
+}
+
+.action-button:first-of-type,
+.modal-cancel {
+  background: var(--accent-alt);
+}
+
+.map-shell {
+  min-height: 0;
+  padding: 1rem 1.2rem 1.2rem;
+}
+
+.world-map {
+  display: block;
+  width: 100%;
+  height: calc(100vh - 14rem);
+  min-height: 28rem;
+  border: 2px solid rgba(83, 97, 110, 0.45);
+  border-radius: 1rem;
+  background: var(--ocean);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.5), 0 1.4rem 3rem rgba(32, 48, 64, 0.12);
+  touch-action: none;
+}
+
+.map-grid {
+  stroke: #bfd0d4;
+  stroke-width: 0.5;
+  stroke-dasharray: 3 3;
+  vector-effect: non-scaling-stroke;
+}
+
+.land-shape {
+  fill: var(--land);
+  stroke: var(--outline);
+  stroke-width: 0.65;
+  pointer-events: none;
+  vector-effect: non-scaling-stroke;
+}
+
+.country-shape {
+  fill: rgba(212, 200, 167, 0.72);
+  stroke: #4a4238;
+  stroke-width: 1.05;
+  cursor: pointer;
+  pointer-events: all;
+  vector-effect: non-scaling-stroke;
+}
+
+.country-shape:hover {
+  fill: rgba(212, 200, 167, 0.88);
+  stroke: #2f281f;
+}
+
+.country-shape.highlight-correct {
+  fill: rgba(74, 160, 96, 0.88);
+  stroke: #2d7a44;
+  stroke-width: 1.25;
+}
+
+.country-shape.highlight-wrong {
+  fill: rgba(203, 84, 84, 0.82);
+  stroke: #9f2f2f;
+  stroke-width: 1.25;
+}
+
+.island-box {
+  fill: rgba(212, 200, 167, 0.28);
+  stroke: var(--box);
+  stroke-width: 1;
+  stroke-dasharray: 2.4 1.6;
+  cursor: pointer;
+  pointer-events: all;
+  vector-effect: non-scaling-stroke;
+}
+
+.answer-highlight {
+  pointer-events: none;
+  vector-effect: non-scaling-stroke;
+}
+
+.island-box:hover {
+  fill: rgba(212, 200, 167, 0.42);
+  stroke: #4a4238;
+}
+
+.island-box.highlight-correct {
+  fill: rgba(74, 160, 96, 0.45);
+  stroke: #2d7a44;
+}
+
+.island-box.highlight-wrong {
+  fill: rgba(203, 84, 84, 0.42);
+  stroke: #9f2f2f;
+}
+
+.guess-line {
+  stroke: rgba(201, 110, 69, 0.7);
+  stroke-width: 1.2;
+  vector-effect: non-scaling-stroke;
+}
+
+.guess-marker {
+  stroke: white;
+  stroke-width: 0.5;
+  vector-effect: non-scaling-stroke;
+}
+
+.guess-marker.guess {
+  fill: #c96e45;
+}
+
+.guess-marker.actual {
+  fill: #2679a8;
+}
+
+.modal {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(20, 30, 40, 0.45);
+  backdrop-filter: blur(4px);
+}
+
+.modal-card {
+  width: min(30rem, calc(100vw - 2rem));
+  padding: 1.3rem;
+  border-radius: 1rem;
+  background: var(--paper);
+  box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.18);
+}
+
+.modal-card h2 {
+  margin: 0 0 0.5rem;
+}
+
+.modal-card p {
+  margin: 0 0 1rem;
+  color: var(--muted);
+}
+
+.modal-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(5rem, 1fr));
+  gap: 0.7rem;
+}
+
+.modal-cancel {
+  margin-top: 1rem;
+}
+
+@media (max-width: 720px) {
+  .game-header,
+  .map-shell {
+    padding-left: 0.8rem;
+    padding-right: 0.8rem;
+  }
+
+  .world-map {
+    height: calc(100vh - 17rem);
+  }
+
+  .button-row button {
+    flex: 1 1 9rem;
+  }
+}

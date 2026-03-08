@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>World Click Challenge</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="page-shell">
+    <header class="game-header">
+      <div class="prompt-block">
+        <h1 id="promptText" class="prompt-text">Loading...</h1>
+        <div id="flagPrompt" class="flag-prompt hidden">
+          <img id="flagImage" alt="Flag prompt">
+        </div>
+      </div>
+      <p id="roundText" class="meta-line"></p>
+      <p id="scoreText" class="meta-line"></p>
+      <p id="detailText" class="meta-line detail-line"></p>
+      <div class="button-row">
+        <button id="cityModeButton" class="mode-button">City mode</button>
+        <button id="countryModeButton" class="mode-button">Country mode</button>
+        <button id="capitalModeButton" class="mode-button">Capital mode</button>
+        <button id="flagModeButton" class="mode-button">Flag mode</button>
+        <button id="restartButton" class="action-button hidden">Restart</button>
+        <button id="changeModeButton" class="action-button hidden">Change mode</button>
+      </div>
+    </header>
+
+    <main class="map-shell">
+      <svg id="mapSvg" class="world-map" viewBox="-180 -90 360 180" preserveAspectRatio="xMidYMid meet" aria-label="World map">
+        <defs>
+          <pattern id="oceanPattern" width="12" height="12" patternUnits="userSpaceOnUse">
+            <rect width="12" height="12" fill="#e8f0f1"></rect>
+            <circle cx="2" cy="2" r="1" fill="#dae7ea"></circle>
+            <circle cx="8" cy="7" r="1" fill="#d4e4e8"></circle>
+          </pattern>
+        </defs>
+        <rect id="mapBackground" x="-180" y="-90" width="360" height="180" fill="url(#oceanPattern)"></rect>
+        <g id="gridLayer"></g>
+        <g id="landLayer"></g>
+        <g id="countryLayer"></g>
+        <g id="islandBoxLayer"></g>
+        <g id="answerLayer"></g>
+        <g id="cityOverlayLayer"></g>
+      </svg>
+    </main>
+  </div>
+
+  <div id="roundCountModal" class="modal hidden" aria-hidden="true">
+    <div class="modal-card">
+      <h2 id="modalTitle">How many rounds?</h2>
+      <p id="modalSubtitle"></p>
+      <div id="modalOptions" class="modal-options"></div>
+      <button id="modalCancelButton" class="modal-cancel">Cancel</button>
+    </div>
+  </div>
+
+  <script src="app.js" defer></script>
+</body>
+</html>

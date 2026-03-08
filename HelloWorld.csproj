@@ -1,0 +1,40 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="HelloWorld\**\*.cs" />
+    <Compile Remove="tools\**\*.cs" />
+    <EmbeddedResource Remove="HelloWorld\**\*" />
+    <EmbeddedResource Remove="tools\**\*" />
+    <None Remove="HelloWorld\**\*" />
+    <None Remove="tools\**\*" />
+  </ItemGroup>
+
+  <Target Name="CopyGameAssets" AfterTargets="Build">
+    <ItemGroup>
+      <GameAssets Include="Assets\**\*" />
+    </ItemGroup>
+
+    <Copy
+      SourceFiles="@(GameAssets)"
+      DestinationFiles="@(GameAssets->'$(OutDir)Assets\%(RecursiveDir)%(Filename)%(Extension)')"
+      SkipUnchangedFiles="true" />
+  </Target>
+
+  <Target Name="CopyGameAssetsToPublish" AfterTargets="Publish">
+    <ItemGroup>
+      <PublishedGameAssets Include="Assets\**\*" />
+    </ItemGroup>
+
+    <Copy
+      SourceFiles="@(PublishedGameAssets)"
+      DestinationFiles="@(PublishedGameAssets->'$(PublishDir)Assets\%(RecursiveDir)%(Filename)%(Extension)')"
+      SkipUnchangedFiles="true" />
+  </Target>
+
+</Project>
