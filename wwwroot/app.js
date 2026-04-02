@@ -7,9 +7,9 @@ const EARTH_RADIUS_KM = 6371;
 const MIN_ZOOM = 1;
 const MAX_ZOOM = 8;
 const ZOOM_STEP = 1.25;
-const ISLAND_BOX_THRESHOLD = 7;
-const ISLAND_BOX_MIN_SIZE = 9;
-const ISLAND_BOX_PADDING = 0.8;
+const ISLAND_BOX_THRESHOLD = 10;
+const ISLAND_BOX_MIN_SIZE = 14;
+const ISLAND_BOX_PADDING = 1.5;
 const TOUCH_PAN_THRESHOLD_PX = 8;
 
 function assetUrl(relativePath) {

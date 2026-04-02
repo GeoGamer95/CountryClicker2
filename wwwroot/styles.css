@@ -168,10 +168,10 @@ button {
 }
 
 .island-box {
-  fill: rgba(212, 200, 167, 0.28);
+  fill: rgba(212, 200, 167, 0.4);
   stroke: var(--box);
-  stroke-width: 1;
-  stroke-dasharray: 2.4 1.6;
+  stroke-width: 1.35;
+  stroke-dasharray: 2.8 1.6;
   cursor: pointer;
   pointer-events: all;
   vector-effect: non-scaling-stroke;
@@ -183,7 +183,7 @@ button {
 }
 
 .island-box:hover {
-  fill: rgba(212, 200, 167, 0.42);
+  fill: rgba(212, 200, 167, 0.56);
   stroke: #4a4238;
 }
 
